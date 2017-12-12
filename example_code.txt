@@ -1,0 +1,43 @@
+######		Computational approach to discriminate human and mouse sequences	######
+######				in patient-derived tumour xenografts			######
+######												######
+######					Supplementary file 1					######
+######		Set of commands to implement an ICRG-based alignment pipeline		######
+##############################################################################################
+
+#!/bin/bash
+
+### MERGE TWO GENOMES (FASTA FORMAT)
+
+# specify genome path
+GENOME_A=path/to/genome_a
+GENOME_B=path/to/genome_b
+
+# generate a copy of genome_b with modified chromosome names
+cp "$GENOME_B" "$GENOME_B"_edited
+sed -i 's/chr/m.chr/g' "$GENOME_B"_edited
+
+# combine the two fasta files
+cat "$GENOME_A" "$GENOME_B"_edited > path/to/ICRG
+
+
+
+### EXTRACT THE NUMBER OF READS (MAPQ>0) MAPPED TO GENOME_A AND GENOME_B (WES DATA)
+READCOUNT=$(echo  $(samtools view -F 4 -q 1 path/to/ICRG_aligned.bam | grep -v $'\t''m.chr' | wc -l) \
+	$(samtools view -F 4 -q 1 path/to/ICRG_aligned.bam | grep $'\t''m.chr' | wc -l))
+echo $READCOUNT > path/to/stats_file.txt
+
+
+
+### SUBSET READS MAPPED TO GENOME_A
+samtools view -h path/to/ICRG_aligned.bam \
+| grep -v $'\t''m.chr' \
+| grep -v 'SN:m.chr' \
+| samtools view -b - > path/to/genome_a_only.bam
+
+
+
+### EXTRACT THE NUMBER OF READS MAPPED (PRIMARY ALIGNMENT) TO GENOME_A AND GENOME_B (RNA-SEQ DATA)
+READCOUNT=$(echo  $(samtools view -F 260 path/to/ICRG_aligned.bam | grep -v $'\t''m.chr' | wc -l) \
+	$(samtools view -F 260 path/to/ICRG_aligned.bam | grep $'\t''m.chr' | wc -l))
+echo $READCOUNT > path/to/stats_file.txt
